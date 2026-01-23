@@ -1,6 +1,6 @@
 /**
- * HABIT TRACKER SYSTEM V2 (14KO Handshake Compliant)
- * Features: Streaks, History, Weekly Views, Account Management
+ * HABIT TRACKER SYSTEM V3 (14KO Compliant)
+ * Features: Streaks, Charts, Global History, Settings
  */
 
 export default {
@@ -13,31 +13,23 @@ export default {
     const sessionId = cookie ? cookie.split(';').find(c => c.trim().startsWith('sess='))?.split('=')[1] : null;
     let user = null;
 
-    if (sessionId) {
-      user = await env.DB.prepare('SELECT * FROM sessions WHERE id = ? AND expires > ?').bind(sessionId, Date.now()).first();
-    }
+    if (sessionId) user = await env.DB.prepare('SELECT * FROM sessions WHERE id = ? AND expires > ?').bind(sessionId, Date.now()).first();
 
-    // --- 2. PUBLIC ROUTES (Login & Register) ---
+    // --- 2. PUBLIC ROUTES ---
     if (url.pathname === '/habits/login' && method === 'POST') {
       const fd = await req.formData();
-      const u = fd.get('u'), p = fd.get('p');
-      const dbUser = await env.DB.prepare('SELECT * FROM users WHERE username = ? AND password = ?').bind(u, await hash(p)).first();
-      
+      const dbUser = await env.DB.prepare('SELECT * FROM users WHERE username = ? AND password = ?').bind(fd.get('u'), await hash(fd.get('p'))).first();
       if (!dbUser) return new Response('Invalid credentials', { status: 401 });
-
       const newSess = crypto.randomUUID();
       await env.DB.prepare('INSERT INTO sessions (id, username, role, expires) VALUES (?, ?, ?, ?)').bind(newSess, dbUser.username, dbUser.role, Date.now() + 86400000).run();
-
       return new Response('OK', { headers: { 'Set-Cookie': `sess=${newSess}; HttpOnly; Secure; SameSite=Strict; Path=/` } });
     }
 
     if (url.pathname === '/habits/register' && method === 'POST') {
       const fd = await req.formData();
-      const u = fd.get('u'), p = fd.get('p');
-      const existing = await env.DB.prepare('SELECT username FROM users WHERE username = ?').bind(u).first();
+      const existing = await env.DB.prepare('SELECT username FROM users WHERE username = ?').bind(fd.get('u')).first();
       if(existing) return new Response('Username taken', {status: 400});
-
-      await env.DB.prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)').bind(u, await hash(p), 'user').run();
+      await env.DB.prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)').bind(fd.get('u'), await hash(fd.get('p')), 'user').run();
       return new Response('OK');
     }
 
@@ -59,36 +51,27 @@ export default {
     // API: TOGGLE HABIT
     if (url.pathname === '/habits/api/toggle' && method === 'POST') {
       const fd = await req.formData();
-      const habitId = fd.get('habitId'), date = fd.get('date');
-      const existing = await env.DB.prepare('SELECT * FROM habit_logs WHERE habit_id = ? AND date = ? AND username = ?').bind(habitId, date, user.username).first();
-      
-      if (existing) {
-        await env.DB.prepare('UPDATE habit_logs SET completed = ? WHERE id = ?').bind(existing.completed ? 0 : 1, existing.id).run();
-      } else {
-        await env.DB.prepare('INSERT INTO habit_logs (id, habit_id, username, date, completed) VALUES (?, ?, ?, ?, ?)').bind(crypto.randomUUID(), habitId, user.username, date, 1).run();
-      }
+      const existing = await env.DB.prepare('SELECT * FROM habit_logs WHERE habit_id = ? AND date = ? AND username = ?').bind(fd.get('habitId'), fd.get('date'), user.username).first();
+      if (existing) await env.DB.prepare('UPDATE habit_logs SET completed = ? WHERE id = ?').bind(existing.completed ? 0 : 1, existing.id).run();
+      else await env.DB.prepare('INSERT INTO habit_logs (id, habit_id, username, date, completed) VALUES (?, ?, ?, ?, ?)').bind(crypto.randomUUID(), fd.get('habitId'), user.username, fd.get('date'), 1).run();
       return new Response("OK");
     }
 
-    // API: UPDATE PASSWORD
+    // API: PASSWORD
     if (url.pathname === '/habits/api/password' && method === 'POST') {
       const fd = await req.formData();
       await env.DB.prepare('UPDATE users SET password = ? WHERE username = ?').bind(await hash(fd.get('p')), user.username).run();
       return new Response("OK");
     }
 
+    // DATA FETCHING (Habits & Logs used by both Dash and History)
+    const { results: habits } = await env.DB.prepare('SELECT * FROM habits WHERE username = ? ORDER BY created_at ASC').bind(user.username).all();
+    const { results: logs } = await env.DB.prepare('SELECT * FROM habit_logs WHERE username = ? AND completed = 1').bind(user.username).all();
+
     // --- 4. RENDER PAGES ---
-    if (url.pathname === '/habits/settings') {
-      return new Response(renderSettings(user), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
-    }
-
-    if (url.pathname === '/habits' || url.pathname === '/habits/') {
-      const { results: habits } = await env.DB.prepare('SELECT * FROM habits WHERE username = ? ORDER BY created_at ASC').bind(user.username).all();
-      // We fetch ALL logs to calculate correct streaks, not just 30 days. History is preserved indefinitely.
-      const { results: logs } = await env.DB.prepare('SELECT * FROM habit_logs WHERE username = ? AND completed = 1').bind(user.username).all();
-
-      return new Response(renderDash(user, habits, logs), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
-    }
+    if (url.pathname === '/habits/settings') return new Response(renderSettings(user), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+    if (url.pathname === '/habits/history') return new Response(renderHistory(user, habits, logs), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+    if (url.pathname === '/habits' || url.pathname === '/habits/') return new Response(renderDash(user, habits, logs), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 
     return new Response("404", { status: 404 });
   }
@@ -99,7 +82,7 @@ async function hash(str) {
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', buf))).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// --- HTML / UI GENERATION ---
+// --- CSS ---
 const CSS = `
 :root{--bg:#121212;--card:#1e1e1e;--txt:#e0e0e0;--p:#bb86fc;--s:#03dac6;--err:#cf6679;--good:#4caf50}
 body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);max-width:900px;margin:0 auto;padding:20px}
@@ -115,139 +98,136 @@ th{background:#2a2a2a;color:var(--s);font-size:0.85em}
 .missed{background:#333;color:#777;cursor:pointer}
 .week-label{background:#121212;color:#aaa;text-transform:uppercase;font-size:0.75em;letter-spacing:1px}
 .streak{background:rgba(255,165,0,0.1);color:#ffa500;padding:2px 6px;border-radius:10px;font-size:0.75em;margin-left:5px;display:inline-block;border:1px solid #ffa500}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+canvas{max-width:100%;background:#1a1a1a;border-radius:4px;padding:10px;}
 a{color:var(--s);text-decoration:none}
+.nav-link{padding:5px 10px;border-radius:4px;background:#333;color:#fff;}
+.nav-link.active{background:var(--p);color:#000}
 `;
 
-function renderLogin() {
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login</title><style>${CSS}</style></head>
-  <body style="display:flex;justify-content:center;align-items:center;height:100vh">
-    <div class="card" style="width:300px;text-align:center"><h2>Habit Tracker</h2>
-      <div id="forms">
-        <form onsubmit="event.preventDefault();doLogin(this)">
-          <input type="text" name="u" placeholder="Username" required style="width:90%"><br>
-          <input type="password" name="p" placeholder="Password" required style="width:90%"><br>
-          <button style="width:100%">LOGIN</button>
-        </form>
-        <p style="font-size:0.8em;color:#aaa;cursor:pointer;margin-top:15px" onclick="toggleReg()">Create an account</p>
-      </div>
-      <div id="reg" style="display:none">
-        <form onsubmit="event.preventDefault();doReg(this)">
-          <input type="text" name="u" placeholder="New Username" required style="width:90%"><br>
-          <input type="password" name="p" placeholder="New Password" required style="width:90%"><br>
-          <button style="width:100%;background:var(--s)">REGISTER</button>
-        </form>
-        <p style="font-size:0.8em;color:#aaa;cursor:pointer;margin-top:15px" onclick="toggleReg()">Back to login</p>
-      </div>
-      <div id="msg" style="color:var(--err);margin-top:10px"></div>
-    </div>
-    <script>
-      function toggleReg(){ document.getElementById('forms').style.display = document.getElementById('forms').style.display === 'none' ? 'block' : 'none'; document.getElementById('reg').style.display = document.getElementById('reg').style.display === 'none' ? 'block' : 'none'; document.getElementById('msg').innerText=''; }
-      async function doLogin(f){ const r=await fetch('/habits/login',{method:'POST',body:new FormData(f)}); if(r.ok) location.reload(); else document.getElementById('msg').innerText = "Access Denied"; }
-      async function doReg(f){ const r=await fetch('/habits/register',{method:'POST',body:new FormData(f)}); if(r.ok) { alert('Account created! Please log in.'); toggleReg(); } else document.getElementById('msg').innerText = "Username taken"; }
-    </script>
-  </body></html>`;
+function renderNav(active) {
+  return `<div style="display:flex;gap:10px">
+    <a href="/habits" class="nav-link ${active==='dash'?'active':''}"><span style="font-size:1.2em">📅</span> Tracker</a>
+    <a href="/habits/history" class="nav-link ${active==='hist'?'active':''}"><span style="font-size:1.2em">📚</span> History</a>
+    <a href="/habits/settings" class="nav-link ${active==='set'?'active':''}"><span style="font-size:1.2em">⚙</span> Settings</a>
+    <a href="/habits/logout" style="color:var(--err);align-self:center;margin-left:auto">Logout</a>
+  </div>`;
+}
+
+function renderLogin() { /* Same as V2 */
+  return `<!DOCTYPE html><html lang="en"><head><title>Login</title><style>${CSS}</style></head>
+  <body style="display:flex;justify-content:center;align-items:center;height:100vh"><div class="card" style="width:300px;text-align:center"><h2>Habit Tracker</h2><div id="forms"><form onsubmit="event.preventDefault();doLogin(this)"><input type="text" name="u" placeholder="Username" required style="width:90%"><br><input type="password" name="p" placeholder="Password" required style="width:90%"><br><button style="width:100%">LOGIN</button></form><p style="font-size:0.8em;color:#aaa;cursor:pointer;margin-top:15px" onclick="toggleReg()">Create account</p></div><div id="reg" style="display:none"><form onsubmit="event.preventDefault();doReg(this)"><input type="text" name="u" placeholder="New Username" required style="width:90%"><br><input type="password" name="p" placeholder="New Password" required style="width:90%"><br><button style="width:100%;background:var(--s)">REGISTER</button></form><p style="font-size:0.8em;color:#aaa;cursor:pointer;margin-top:15px" onclick="toggleReg()">Back to login</p></div><div id="msg" style="color:var(--err);margin-top:10px"></div></div><script>function toggleReg(){ document.getElementById('forms').style.display = document.getElementById('forms').style.display === 'none' ? 'block' : 'none'; document.getElementById('reg').style.display = document.getElementById('reg').style.display === 'none' ? 'block' : 'none'; document.getElementById('msg').innerText=''; } async function doLogin(f){ const r=await fetch('/habits/login',{method:'POST',body:new FormData(f)}); if(r.ok) location.reload(); else document.getElementById('msg').innerText = "Access Denied"; } async function doReg(f){ const r=await fetch('/habits/register',{method:'POST',body:new FormData(f)}); if(r.ok) { alert('Account created! Please log in.'); toggleReg(); } else document.getElementById('msg').innerText = "Username taken"; }</script></body></html>`;
 }
 
 function renderSettings(user) {
   return `<!DOCTYPE html><html lang="en"><head><title>Settings</title><style>${CSS}</style></head><body>
-    <header class="row card" style="padding:15px">
-      <div><strong>⚙ Settings</strong> <span style="color:#777">| ${user.username}</span></div>
-      <a href="/habits">← Back to Tracker</a>
-    </header>
-    <div class="card">
-      <h3>Change Password</h3>
-      <form onsubmit="event.preventDefault();changePw(this)">
-        <input type="password" name="p" placeholder="New Password" required><br>
-        <button>Update Password</button>
-      </form>
-    </div>
-    <script>
-      async function changePw(f){ const r=await fetch('/habits/api/password',{method:'POST',body:new FormData(f)}); if(r.ok) alert('Password updated successfully.'); }
-    </script>
+    <header class="row card" style="padding:15px"><div><strong>Settings</strong> | ${user.username}</div>${renderNav('set')}</header>
+    <div class="card"><h3>Change Password</h3><form onsubmit="event.preventDefault();changePw(this)"><input type="password" name="p" placeholder="New Password" required><br><button>Update</button></form></div>
+    <script>async function changePw(f){ const r=await fetch('/habits/api/password',{method:'POST',body:new FormData(f)}); if(r.ok) alert('Updated.'); }</script></body></html>`;
+}
+
+function renderHistory(user, habits, logs) {
+  // Group logs by Year and Month
+  const historyData = {};
+  logs.forEach(l => {
+    const year = l.date.slice(0, 4);
+    const month = l.date.slice(5, 7);
+    if (!historyData[year]) historyData[year] = {};
+    if (!historyData[year][month]) historyData[year][month] = {};
+    historyData[year][month][l.habit_id] = (historyData[year][month][l.habit_id] || 0) + 1;
+  });
+
+  const years = Object.keys(historyData).sort((a,b) => b - a); // Newest first
+
+  const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  return `<!DOCTYPE html><html lang="en"><head><title>History</title><style>${CSS}</style></head><body>
+    <header class="row card" style="padding:15px"><div><strong>Global History</strong> | ${user.username}</div>${renderNav('hist')}</header>
+    ${years.length === 0 ? '<div class="card">No history available yet.</div>' : years.map(yr => `
+      <div class="card">
+        <h3>📅 ${yr} Breakdown</h3>
+        <div style="overflow-x:auto">
+          <table>
+            <tr><th style="background:#121212">Habit</th>${monthNames.map(m => `<th>${m}</th>`).join('')}<th>Total</th></tr>
+            ${habits.map(h => {
+              let yearlyTotal = 0;
+              const monthCols = months.map(m => {
+                const count = historyData[yr]?.[m]?.[h.id] || 0;
+                yearlyTotal += count;
+                const alpha = count / 30; // Heatmap intensity
+                return `<td style="background:rgba(76, 175, 80, ${alpha}); color:${count>0?'#fff':'#444'}">${count}</td>`;
+              }).join('');
+              return `<tr><td style="font-weight:bold">${h.name}</td>${monthCols}<td style="font-weight:bold;color:var(--p)">${yearlyTotal}</td></tr>`;
+            }).join('')}
+          </table>
+        </div>
+      </div>
+    `).join('')}
   </body></html>`;
 }
 
 function renderDash(user, habits, logs) {
-  // DATE GENERATION (Last 14 days, split into This Week vs Last Week)
-  const todayDate = new Date();
-  const todayStr = todayDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const allDays = Array.from({length: 14}, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (13 - i));
-    return d.toISOString().split('T')[0];
-  });
-  const lastWeek = allDays.slice(0, 7);
-  const thisWeek = allDays.slice(7, 14);
-
-  // STREAK CALCULATION LOGIC
+  const allDays = Array.from({length: 14}, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (13 - i)); return d.toISOString().split('T')[0]; });
   const logMap = new Set(logs.map(l => l.habit_id + '_' + l.date));
   
-  const habitsWithStreaks = habits.map(h => {
+  const habitsWithData = habits.map(h => {
     let streak = 0;
     let d = new Date();
-    // Check backwards from today to infinity
     for(let i=0; i<3000; i++) {
-      const dateStr = d.toISOString().split('T')[0];
-      if(logMap.has(h.id + '_' + dateStr)) streak++;
-      else if (i !== 0) break; // If not found and it's not today, streak breaks.
+      if(logMap.has(h.id + '_' + d.toISOString().split('T')[0])) streak++;
+      else if (i !== 0) break; 
       d.setDate(d.getDate() - 1);
     }
-    return { ...h, streak };
+    // For the 30-day stats chart
+    let last30 = 0;
+    let d30 = new Date();
+    for(let i=0; i<30; i++) {
+      if(logMap.has(h.id + '_' + d30.toISOString().split('T')[0])) last30++;
+      d30.setDate(d30.getDate() - 1);
+    }
+    return { ...h, streak, last30 };
   });
 
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Habits</title><style>${CSS}</style></head>
-  <body>
-    <header class="row card" style="padding:15px">
-      <div>
-        <strong style="font-size:1.2em">Habit Tracker</strong> <span style="color:#777">| ${user.username}</span><br>
-        <small style="color:var(--s)">📅 Today is ${todayStr}</small>
-      </div>
-      <div style="display:flex;gap:10px">
-        <a href="/habits/settings" style="background:#333;padding:5px 10px;border-radius:4px;">⚙ Settings</a>
-        <a href="/habits/logout" style="color:var(--err);align-self:center;">Logout</a>
-      </div>
-    </header>
+  // Calculate Most/Least respected (last 30 days)
+  const sorted = [...habitsWithData].sort((a,b) => b.last30 - a.last30);
+  const best = sorted.length ? sorted[0] : {name:'N/A', last30:0};
+  const worst = sorted.length ? sorted[sorted.length-1] : {name:'N/A', last30:0};
+
+  const dailyTotals = allDays.map(d => logs.filter(l => l.date === d).length);
+
+  return `<!DOCTYPE html><html lang="en"><head><title>Habits</title><style>${CSS}</style><script src="https://cdn.jsdelivr.net/npm/chart.js"></script></head><body>
+    <header class="row card" style="padding:15px"><div><strong>Habit Tracker</strong> | ${user.username}</div>${renderNav('dash')}</header>
 
     <div class="card">
-      <div class="row">
-        <h3>📊 Weekly Tracker</h3>
-        <form onsubmit="event.preventDefault();addHabit(this)" style="display:flex;gap:5px">
-          <input type="text" name="name" placeholder="New Habit..." required>
-          <button>Add</button>
-        </form>
+      <div class="row"><h3>📊 14-Day Grid</h3><form onsubmit="event.preventDefault();addHabit(this)" style="display:flex;gap:5px"><input type="text" name="name" placeholder="New Habit..." required><button>Add</button></form></div>
+      <div style="overflow-x:auto"><table>
+        <tr><th rowspan="2" style="background:#121212">Habit</th><th colspan="7" class="week-label">Last Week</th><th colspan="7" class="week-label" style="border-left:2px solid #555">This Week</th></tr>
+        <tr>${allDays.map(d => `<th style="${d === allDays[7] ? 'border-left:2px solid #555;' : ''}">${d.slice(8,10)}/${d.slice(5,7)}</th>`).join('')}</tr>
+        ${habitsWithData.map(h => `<tr><td style="font-weight:bold;text-align:left">${h.name}${h.streak >= 3 ? `<span class="streak">🔥 ${h.streak}d</span>` : ''}</td>
+          ${allDays.map(d => `<td class="${logMap.has(h.id+'_'+d) ? 'done' : 'missed'}" style="${d === allDays[7] ? 'border-left:2px solid #555;' : ''}" onclick="toggle('${h.id}', '${d}')">${logMap.has(h.id+'_'+d) ? '✓' : '✗'}</td>`).join('')}</tr>`).join('')}
+      </table></div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="card">
+        <h3>🏆 30-Day Summary</h3>
+        <p><strong>Most Respected:</strong> ${best.name} (${best.last30}/30)</p>
+        <p><strong>Needs Attention:</strong> ${worst.name} (${worst.last30}/30)</p>
+        <canvas id="habitChart"></canvas>
       </div>
-      <div style="overflow-x:auto">
-        <table>
-          <tr>
-            <th rowspan="2" style="background:#121212">Habit</th>
-            <th colspan="7" class="week-label">Last Week</th>
-            <th colspan="7" class="week-label" style="border-left:2px solid #555">This Week</th>
-          </tr>
-          <tr>
-            ${allDays.map(d => `<th style="${d === thisWeek[0] ? 'border-left:2px solid #555;' : ''}">${d.slice(8,10)}/${d.slice(5,7)}</th>`).join('')}
-          </tr>
-          ${habitsWithStreaks.map(h => `
-            <tr>
-              <td style="font-weight:bold;text-align:left">
-                ${h.name}
-                ${h.streak >= 3 ? `<span class="streak">🔥 ${h.streak} Day Streak!</span>` : ''}
-              </td>
-              ${allDays.map(d => {
-                const isDone = logMap.has(h.id + '_' + d);
-                const borderLeft = d === thisWeek[0] ? 'border-left:2px solid #555;' : '';
-                return `<td class="${isDone ? 'done' : 'missed'}" style="${borderLeft}" onclick="toggle('${h.id}', '${d}')">${isDone ? '✓' : '✗'}</td>`;
-              }).join('')}
-            </tr>
-          `).join('')}
-        </table>
+      <div class="card">
+        <h3>📈 Daily Momentum (14 Days)</h3>
+        <canvas id="dailyChart"></canvas>
       </div>
     </div>
 
     <script>
       async function addHabit(f) { await fetch('/habits/api/add', {method:'POST', body:new FormData(f)}); location.reload(); }
-      async function toggle(habitId, date) {
-        const fd = new FormData(); fd.append('habitId', habitId); fd.append('date', date);
-        await fetch('/habits/api/toggle', {method:'POST', body:fd}); location.reload();
-      }
+      async function toggle(id, d) { const fd = new FormData(); fd.append('habitId', id); fd.append('date', d); await fetch('/habits/api/toggle', {method:'POST', body:fd}); location.reload(); }
+      
+      new Chart(document.getElementById('habitChart'), { type: 'bar', data: { labels: ${JSON.stringify(habitsWithData.map(h=>h.name))}, datasets: [{ label: 'Days Completed (30d)', data: ${JSON.stringify(habitsWithData.map(h=>h.last30))}, backgroundColor: '#03dac6' }] }, options: { scales: { y: { max: 30 } }, plugins:{legend:{labels:{color:'#fff'}}} } });
+      new Chart(document.getElementById('dailyChart'), { type: 'line', data: { labels: ${JSON.stringify(allDays.map(d=>d.slice(5)))}, datasets: [{ label: 'Habits Done', data: ${JSON.stringify(dailyTotals)}, borderColor: '#bb86fc', tension: 0.3, fill:true, backgroundColor:'rgba(187,134,252,0.1)' }] }, options: { scales: { y: { beginAtZero: true } } } });
     </script>
   </body></html>`;
 }
