@@ -28,7 +28,7 @@ export default {
     if (url.pathname === '/habits/register' && method === 'POST') {
       const fd = await req.formData();
       const existing = await env.DB.prepare('SELECT username FROM users WHERE username = ?').bind(fd.get('u')).first();
-      if(existing) return new Response('Username taken', {status: 400});
+      if (existing) return new Response('Username taken', { status: 400 });
       await env.DB.prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)').bind(fd.get('u'), await hash(fd.get('p')), 'user').run();
       return new Response('OK');
     }
@@ -62,13 +62,13 @@ export default {
       const fd = await req.formData();
       const habitId = fd.get('habitId'), direction = fd.get('direction');
       const { results: habits } = await env.DB.prepare('SELECT * FROM habits WHERE username = ? ORDER BY created_at ASC').bind(user.username).all();
-      
+
       const idx = habits.findIndex(h => h.id === habitId);
       if (idx !== -1) {
         let targetTs = null;
         if (direction === 'up' && idx > 0) targetTs = habits[idx - 1].created_at - 1;
         if (direction === 'down' && idx < habits.length - 1) targetTs = habits[idx + 1].created_at + 1;
-        
+
         if (targetTs !== null) {
           await env.DB.prepare('UPDATE habits SET created_at = ? WHERE id = ?').bind(targetTs, habitId).run();
         }
@@ -140,9 +140,9 @@ a{color:var(--s);text-decoration:none}
 
 function renderNav(active) {
   return `<div style="display:flex;gap:10px">
-    <a href="/habits" class="nav-link ${active==='dash'?'active':''}"><span style="font-size:1.2em">📅</span> Tracker</a>
-    <a href="/habits/history" class="nav-link ${active==='hist'?'active':''}"><span style="font-size:1.2em">📚</span> History</a>
-    <a href="/habits/settings" class="nav-link ${active==='set'?'active':''}"><span style="font-size:1.2em">⚙</span> Settings</a>
+    <a href="/habits" class="nav-link ${active === 'dash' ? 'active' : ''}"><span style="font-size:1.2em">📅</span> Tracker</a>
+    <a href="/habits/history" class="nav-link ${active === 'hist' ? 'active' : ''}"><span style="font-size:1.2em">📚</span> History</a>
+    <a href="/habits/settings" class="nav-link ${active === 'set' ? 'active' : ''}"><span style="font-size:1.2em">⚙</span> Settings</a>
     <a href="/habits/logout" style="color:var(--err);align-self:center;margin-left:auto">Logout</a>
   </div>`;
 }
@@ -162,29 +162,29 @@ function renderSettings(user) { /* Unchanged from V3 */
 function renderHistory(user, habits, logs) { /* Unchanged from V3 */
   const historyData = {};
   logs.forEach(l => { const yr = l.date.slice(0, 4), mo = l.date.slice(5, 7); if (!historyData[yr]) historyData[yr] = {}; if (!historyData[yr][mo]) historyData[yr][mo] = {}; historyData[yr][mo][l.habit_id] = (historyData[yr][mo][l.habit_id] || 0) + 1; });
-  const years = Object.keys(historyData).sort((a,b) => b - a);
-  const months = ['01','02','03','04','05','06','07','08','09','10','11','12'], monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const years = Object.keys(historyData).sort((a, b) => b - a);
+  const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'], monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `<!DOCTYPE html><html lang="en"><head><title>History</title><style>${CSS}</style></head><body>
     <header class="row card" style="padding:15px"><div><strong>Global History</strong> | ${user.username}</div>${renderNav('hist')}</header>
-    ${years.length === 0 ? '<div class="card">No history available yet.</div>' : years.map(yr => `<div class="card"><h3>📅 ${yr} Breakdown</h3><div style="overflow-x:auto"><table><tr><th style="background:#121212">Habit</th>${monthNames.map(m => `<th>${m}</th>`).join('')}<th>Total</th></tr>${habits.map(h => { let yTot = 0; const mCols = months.map(m => { const count = historyData[yr]?.[m]?.[h.id] || 0; yTot += count; const alpha = count / 30; return `<td style="background:rgba(76, 175, 80, ${alpha}); color:${count>0?'#fff':'#444'}">${count}</td>`; }).join(''); return `<tr><td style="font-weight:bold">${h.name}</td>${mCols}<td style="font-weight:bold;color:var(--p)">${yTot}</td></tr>`; }).join('')}</table></div></div>`).join('')}
+    ${years.length === 0 ? '<div class="card">No history available yet.</div>' : years.map(yr => `<div class="card"><h3>📅 ${yr} Breakdown</h3><div style="overflow-x:auto"><table><tr><th style="background:#121212">Habit</th>${monthNames.map(m => `<th>${m}</th>`).join('')}<th>Total</th></tr>${habits.map(h => { let yTot = 0; const mCols = months.map(m => { const count = historyData[yr]?.[m]?.[h.id] || 0; yTot += count; const alpha = count / 30; return `<td style="background:rgba(76, 175, 80, ${alpha}); color:${count > 0 ? '#fff' : '#444'}">${count}</td>`; }).join(''); return `<tr><td style="font-weight:bold">${h.name}</td>${mCols}<td style="font-weight:bold;color:var(--p)">${yTot}</td></tr>`; }).join('')}</table></div></div>`).join('')}
   </body></html>`;
 }
 
 function renderDash(user, habits, logs) {
-  const allDays = Array.from({length: 14}, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().split('T')[0]; }).reverse();
+  const allDays = Array.from({ length: 14 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().split('T')[0]; });
   const logMap = new Set(logs.map(l => l.habit_id + '_' + l.date));
-  
+
   const habitsWithData = habits.map(h => {
     let streak = 0, d = new Date();
-    for(let i=0; i<3000; i++) { if(logMap.has(h.id + '_' + d.toISOString().split('T')[0])) streak++; else if (i !== 0) break; d.setDate(d.getDate() - 1); }
+    for (let i = 0; i < 3000; i++) { if (logMap.has(h.id + '_' + d.toISOString().split('T')[0])) streak++; else if (i !== 0) break; d.setDate(d.getDate() - 1); }
     let last30 = 0, d30 = new Date();
-    for(let i=0; i<30; i++) { if(logMap.has(h.id + '_' + d30.toISOString().split('T')[0])) last30++; d30.setDate(d30.getDate() - 1); }
+    for (let i = 0; i < 30; i++) { if (logMap.has(h.id + '_' + d30.toISOString().split('T')[0])) last30++; d30.setDate(d30.getDate() - 1); }
     return { ...h, streak, last30 };
   });
 
-  const sorted = [...habitsWithData].sort((a,b) => b.last30 - a.last30);
-  const best = sorted.length ? sorted[0] : {name:'N/A', last30:0};
-  const worst = sorted.length ? sorted[sorted.length-1] : {name:'N/A', last30:0};
+  const sorted = [...habitsWithData].sort((a, b) => b.last30 - a.last30);
+  const best = sorted.length ? sorted[0] : { name: 'N/A', last30: 0 };
+  const worst = sorted.length ? sorted[sorted.length - 1] : { name: 'N/A', last30: 0 };
   const dailyTotals = allDays.map(d => logs.filter(l => l.date === d).length);
 
   return `<!DOCTYPE html><html lang="en"><head><title>Habits</title><style>${CSS}</style><script src="https://cdn.jsdelivr.net/npm/chart.js"></script></head><body>
@@ -194,7 +194,7 @@ function renderDash(user, habits, logs) {
       <div class="row"><h3>📊 14-Day Grid</h3><form onsubmit="event.preventDefault();addHabit(this)" style="display:flex;gap:5px"><input type="text" name="name" placeholder="New Habit..." required><button>Add</button></form></div>
       <div style="overflow-x:auto"><table>
         <tr><th rowspan="2" style="background:#121212">Habit</th><th colspan="7" class="week-label">This Week</th><th colspan="7" class="week-label" style="border-left:2px solid #555">Last Week</th></tr>
-        <tr>${allDays.map((d, i) => `<th class="${i === 0 ? 'today-col' : ''}" style="${i === 7 ? 'border-left:2px solid #555;' : ''}"><div>${d.slice(8,10)}/${d.slice(5,7)}</div>${i === 0 ? '<div class="today-label">TODAY</div>' : ''}</th>`).join('')}</tr>
+        <tr>${allDays.map((d, i) => `<th class="${i === 0 ? 'today-col' : ''}" style="${i === 7 ? 'border-left:2px solid #555;' : ''}"><div>${d.slice(8, 10)}/${d.slice(5, 7)}</div>${i === 0 ? '<div class="today-label">TODAY</div>' : ''}</th>`).join('')}</tr>
         ${habitsWithData.map(h => `<tr>
           <td style="font-weight:bold;text-align:left;display:flex;justify-content:space-between;align-items:center;border:none">
             <span>${h.name} ${h.streak >= 3 ? `<span class="streak">🔥 ${h.streak}d</span>` : ''}</span>
@@ -204,7 +204,7 @@ function renderDash(user, habits, logs) {
               <button class="ctrl-btn del" onclick="delHabit('${h.id}', '${h.name}')" title="Delete">🗑</button>
             </div>
           </td>
-          ${allDays.map((d, i) => `<td class="${logMap.has(h.id+'_'+d) ? 'done' : 'missed'} ${i === 0 ? 'today-col' : ''}" style="${i === 7 ? 'border-left:2px solid #555;' : ''}" onclick="toggle('${h.id}', '${d}')">${logMap.has(h.id+'_'+d) ? '✓' : '✗'}</td>`).join('')}</tr>`).join('')}
+          ${allDays.map((d, i) => `<td class="${logMap.has(h.id + '_' + d) ? 'done' : 'missed'} ${i === 0 ? 'today-col' : ''}" style="${i === 7 ? 'border-left:2px solid #555;' : ''}" onclick="toggle('${h.id}', '${d}')">${logMap.has(h.id + '_' + d) ? '✓' : '✗'}</td>`).join('')}</tr>`).join('')}
       </table></div>
     </div>
 
@@ -236,8 +236,8 @@ function renderDash(user, habits, logs) {
         await fetch('/habits/api/reorder', {method:'POST', body:fd}); location.reload();
       }
 
-      new Chart(document.getElementById('habitChart'), { type: 'bar', data: { labels: ${JSON.stringify(habitsWithData.map(h=>h.name))}, datasets: [{ label: 'Days Completed (30d)', data: ${JSON.stringify(habitsWithData.map(h=>h.last30))}, backgroundColor: '#03dac6' }] }, options: { scales: { y: { max: 30 } }, plugins:{legend:{labels:{color:'#fff'}}} } });
-      new Chart(document.getElementById('dailyChart'), { type: 'line', data: { labels: ${JSON.stringify(allDays.map(d=>d.slice(5)))}, datasets: [{ label: 'Habits Done', data: ${JSON.stringify(dailyTotals)}, borderColor: '#bb86fc', tension: 0.3, fill:true, backgroundColor:'rgba(187,134,252,0.1)' }] }, options: { scales: { y: { beginAtZero: true } } } });
+      new Chart(document.getElementById('habitChart'), { type: 'bar', data: { labels: ${JSON.stringify(habitsWithData.map(h => h.name))}, datasets: [{ label: 'Days Completed (30d)', data: ${JSON.stringify(habitsWithData.map(h => h.last30))}, backgroundColor: '#03dac6' }] }, options: { scales: { y: { max: 30 } }, plugins:{legend:{labels:{color:'#fff'}}} } });
+      new Chart(document.getElementById('dailyChart'), { type: 'line', data: { labels: ${JSON.stringify(allDays.map(d => d.slice(5)))}, datasets: [{ label: 'Habits Done', data: ${JSON.stringify(dailyTotals)}, borderColor: '#bb86fc', tension: 0.3, fill:true, backgroundColor:'rgba(187,134,252,0.1)' }] }, options: { scales: { y: { beginAtZero: true } } } });
     </script>
   </body></html>`;
 }
