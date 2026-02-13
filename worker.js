@@ -134,6 +134,8 @@ a{color:var(--s);text-decoration:none}
 .ctrl-btn{background:transparent;color:#777;border:none;padding:2px 6px;font-size:1.1em;cursor:pointer}
 .ctrl-btn:hover{color:#fff}
 .ctrl-btn.del:hover{color:var(--err)}
+.today-col{background:rgba(187,134,252,0.15)!important;border-left:3px solid var(--p)!important;border-right:3px solid var(--p)!important;position:relative}
+.today-label{background:var(--p);color:#000;font-weight:bold;padding:2px 6px;border-radius:4px;font-size:0.7em}
 `;
 
 function renderNav(active) {
@@ -169,7 +171,7 @@ function renderHistory(user, habits, logs) { /* Unchanged from V3 */
 }
 
 function renderDash(user, habits, logs) {
-  const allDays = Array.from({length: 14}, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (13 - i)); return d.toISOString().split('T')[0]; });
+  const allDays = Array.from({length: 14}, (_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().split('T')[0]; }).reverse();
   const logMap = new Set(logs.map(l => l.habit_id + '_' + l.date));
   
   const habitsWithData = habits.map(h => {
@@ -191,8 +193,8 @@ function renderDash(user, habits, logs) {
     <div class="card">
       <div class="row"><h3>📊 14-Day Grid</h3><form onsubmit="event.preventDefault();addHabit(this)" style="display:flex;gap:5px"><input type="text" name="name" placeholder="New Habit..." required><button>Add</button></form></div>
       <div style="overflow-x:auto"><table>
-        <tr><th rowspan="2" style="background:#121212">Habit</th><th colspan="7" class="week-label">Last Week</th><th colspan="7" class="week-label" style="border-left:2px solid #555">This Week</th></tr>
-        <tr>${allDays.map(d => `<th style="${d === allDays[7] ? 'border-left:2px solid #555;' : ''}">${d.slice(8,10)}/${d.slice(5,7)}</th>`).join('')}</tr>
+        <tr><th rowspan="2" style="background:#121212">Habit</th><th colspan="7" class="week-label">This Week</th><th colspan="7" class="week-label" style="border-left:2px solid #555">Last Week</th></tr>
+        <tr>${allDays.map((d, i) => `<th class="${i === 0 ? 'today-col' : ''}" style="${i === 7 ? 'border-left:2px solid #555;' : ''}"><div>${d.slice(8,10)}/${d.slice(5,7)}</div>${i === 0 ? '<div class="today-label">TODAY</div>' : ''}</th>`).join('')}</tr>
         ${habitsWithData.map(h => `<tr>
           <td style="font-weight:bold;text-align:left;display:flex;justify-content:space-between;align-items:center;border:none">
             <span>${h.name} ${h.streak >= 3 ? `<span class="streak">🔥 ${h.streak}d</span>` : ''}</span>
@@ -202,7 +204,7 @@ function renderDash(user, habits, logs) {
               <button class="ctrl-btn del" onclick="delHabit('${h.id}', '${h.name}')" title="Delete">🗑</button>
             </div>
           </td>
-          ${allDays.map(d => `<td class="${logMap.has(h.id+'_'+d) ? 'done' : 'missed'}" style="${d === allDays[7] ? 'border-left:2px solid #555;' : ''}" onclick="toggle('${h.id}', '${d}')">${logMap.has(h.id+'_'+d) ? '✓' : '✗'}</td>`).join('')}</tr>`).join('')}
+          ${allDays.map((d, i) => `<td class="${logMap.has(h.id+'_'+d) ? 'done' : 'missed'} ${i === 0 ? 'today-col' : ''}" style="${i === 7 ? 'border-left:2px solid #555;' : ''}" onclick="toggle('${h.id}', '${d}')">${logMap.has(h.id+'_'+d) ? '✓' : '✗'}</td>`).join('')}</tr>`).join('')}
       </table></div>
     </div>
 
