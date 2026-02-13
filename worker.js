@@ -134,7 +134,8 @@ a{color:var(--s);text-decoration:none}
 .ctrl-btn{background:transparent;color:#777;border:none;padding:2px 6px;font-size:1.1em;cursor:pointer}
 .ctrl-btn:hover{color:#fff}
 .ctrl-btn.del:hover{color:var(--err)}
-.today-col{background:rgba(187,134,252,0.15)!important;border-left:3px solid var(--p)!important;border-right:3px solid var(--p)!important;position:relative}
+.today-col{border-left:3px solid var(--p)!important;border-right:3px solid var(--p)!important;position:relative}
+.today-col.missed{background:rgba(187,134,252,0.15)!important}
 .today-label{background:var(--p);color:#000;font-weight:bold;padding:2px 6px;border-radius:4px;font-size:0.7em}
 `;
 
@@ -237,7 +238,7 @@ function renderDash(user, habits, logs) {
       }
 
       new Chart(document.getElementById('habitChart'), { type: 'bar', data: { labels: ${JSON.stringify(habitsWithData.map(h => h.name))}, datasets: [{ label: 'Days Completed (30d)', data: ${JSON.stringify(habitsWithData.map(h => h.last30))}, backgroundColor: '#03dac6' }] }, options: { scales: { y: { max: 30 } }, plugins:{legend:{labels:{color:'#fff'}}} } });
-      new Chart(document.getElementById('dailyChart'), { type: 'line', data: { labels: ${JSON.stringify(allDays.map(d => d.slice(5)))}, datasets: [{ label: 'Habits Done', data: ${JSON.stringify(dailyTotals)}, borderColor: '#bb86fc', tension: 0.3, fill:true, backgroundColor:'rgba(187,134,252,0.1)' }] }, options: { scales: { y: { beginAtZero: true } } } });
+      new Chart(document.getElementById('dailyChart'), { type: 'line', data: { labels: ${JSON.stringify(allDays.slice().reverse().map(d => d.slice(5)))}, datasets: [{ label: 'Habits Done', data: ${JSON.stringify(dailyTotals.slice().reverse())}, borderColor: '#bb86fc', tension: 0.3, fill:true, backgroundColor:'rgba(187,134,252,0.1)' }] }, options: { scales: { y: { beginAtZero: true } } } });
     </script>
   </body></html>`;
 }
