@@ -4,12 +4,20 @@
   "compatibility_date": "2024-09-23",
   "d1_databases": [
     {
+      "binding": "AUTH_DB",
+      "database_name": "global-auth",
+      "database_id": "ba736065-1d46-450b-a083-efc8ba935939"
+    },
+    {
       "binding": "DB",
-      "database_name": "habits", 
+      "database_name": "habits",
       "database_id": "89ac9757-7e16-472d-8cdd-025a5946aa30"
     }
   ],
   "routes": [
-    { "pattern": "111iridescence.org/habits*", "zone_name": "111iridescence.org" }
+    {
+      "pattern": "111iridescence.org/habits*",
+      "zone_name": "111iridescence.org"
+    }
   ]
 }
