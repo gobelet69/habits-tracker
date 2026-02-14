@@ -18,7 +18,7 @@ export default {
     // --- 2. PUBLIC ROUTES ---
     if (url.pathname === '/habits/login' && method === 'POST') {
       const fd = await req.formData();
-      const dbUser = await env.AUTH_DB.prepare('SELECT * FROM users WHERE username = ? AND password = ?').bind(fd.get('u'), await hash(fd.get('p'))).first();
+      const dbUser = await env.AUTH_DB.prepare('SELECT * FROM users WHERE username = ? AND password = ?').bind(fd.get('username'), await hash(fd.get('password'))).first();
       if (!dbUser) return new Response('Invalid credentials', { status: 401 });
       const newSess = crypto.randomUUID();
       await env.AUTH_DB.prepare('INSERT INTO sessions (id, username, role, expires) VALUES (?, ?, ?, ?)').bind(newSess, dbUser.username, dbUser.role, Date.now() + 86400000).run();
@@ -27,9 +27,9 @@ export default {
 
     if (url.pathname === '/habits/register' && method === 'POST') {
       const fd = await req.formData();
-      const existing = await env.AUTH_DB.prepare('SELECT username FROM users WHERE username = ?').bind(fd.get('u')).first();
+      const existing = await env.AUTH_DB.prepare('SELECT username FROM users WHERE username = ?').bind(fd.get('username')).first();
       if (existing) return new Response('Username taken', { status: 400 });
-      await env.AUTH_DB.prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)').bind(fd.get('u'), await hash(fd.get('p')), 'user').run();
+      await env.AUTH_DB.prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)').bind(fd.get('username'), await hash(fd.get('password')), 'user').run();
       return new Response('OK');
     }
 
