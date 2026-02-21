@@ -148,6 +148,8 @@ header{display:flex;justify-content:space-between;align-items:center;min-height:
 .user-dropdown .signout:hover{background:rgba(244,63,94,0.08)}
 `;
 
+const FAVICON = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%23f43f5e'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='21' font-family='Arial,sans-serif' font-weight='900' font-size='12' fill='white' text-anchor='middle'%3E111%3C/text%3E%3C/svg%3E`;
+
 function renderBrand(appName) {
   return `<a href="/" style="text-decoration:none;display:flex;align-items:center;gap:10px;flex-shrink:0">
     <span style="width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#f43f5e);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9em;color:#fff;flex-shrink:0;box-shadow:0 0 18px rgba(99,102,241,0.55)">111</span>
@@ -194,7 +196,7 @@ function renderNav(active, username) {
 
 
 function renderSettings(user) {
-  return `<!DOCTYPE html><html lang="en"><head><title>Habit Tracker · 111iridescence</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>
+  return `<!DOCTYPE html><html lang="en"><head><title>111 Habit Tracker</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/svg+xml" href="${FAVICON}"><style>${CSS}</style></head><body>
     <header>
       ${renderBrand('Habit Tracker')}
       ${renderNav('set', user.username)}
@@ -208,7 +210,7 @@ function renderHistory(user, habits, logs) { /* Unchanged from V3 */
   logs.forEach(l => { const yr = l.date.slice(0, 4), mo = l.date.slice(5, 7); if (!historyData[yr]) historyData[yr] = {}; if (!historyData[yr][mo]) historyData[yr][mo] = {}; historyData[yr][mo][l.habit_id] = (historyData[yr][mo][l.habit_id] || 0) + 1; });
   const years = Object.keys(historyData).sort((a, b) => b - a);
   const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'], monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `<!DOCTYPE html><html lang="en"><head><title>History · Habit Tracker</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>
+  return `<!DOCTYPE html><html lang="en"><head><title>111 Habit Tracker</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/svg+xml" href="${FAVICON}"><style>${CSS}</style></head><body>
     <header>
       ${renderBrand('Habit Tracker')}
       ${renderNav('hist', user.username)}
@@ -234,7 +236,7 @@ function renderDash(user, habits, logs) {
   const worst = sorted.length ? sorted[sorted.length - 1] : { name: 'N/A', last30: 0 };
   const dailyTotals = allDays.map(d => logs.filter(l => l.date === d).length);
 
-  return `<!DOCTYPE html><html lang="en"><head><title>Habits · 111iridescence</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style><script src="https://cdn.jsdelivr.net/npm/chart.js"></script></head><body>
+  return `<!DOCTYPE html><html lang="en"><head><title>111 Habit Tracker</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/svg+xml" href="${FAVICON}"><style>${CSS}</style><script src="https://cdn.jsdelivr.net/npm/chart.js"></script></head><body>
     <header>
       ${renderBrand('Habit Tracker')}
       ${renderNav('dash', user.username)}
