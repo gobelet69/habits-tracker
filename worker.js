@@ -94,31 +94,42 @@ async function hash(str) {
 
 // --- CSS ---
 const CSS = `
-:root{--bg:#121212;--card:#1e1e1e;--txt:#e0e0e0;--p:#bb86fc;--s:#03dac6;--err:#cf6679;--good:#4caf50}
-body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);max-width:900px;margin:0 auto;padding:20px}
-input{background:#333;border:1px solid #444;color:#fff;padding:8px;border-radius:4px;margin:5px 0}
-button{cursor:pointer;background:var(--p);color:#000;font-weight:bold;border:none;padding:8px;border-radius:4px;}
-button:hover{opacity:0.9}
-.card{background:var(--card);padding:20px;border-radius:8px;margin-bottom:20px;border:1px solid #333}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+:root{--bg:#0f1117;--card:#161b22;--txt-main:#f8fafc;--txt-muted:#94a3b8;--p:#6366f1;--p-hover:#4f46e5;--s:#0ea5e9;--err:#f43f5e;--good:#10b981;--border:rgba(255,255,255,0.08);--ring:rgba(99,102,241,0.5)}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt-main);max-width:1000px;margin:0 auto;padding:24px;line-height:1.5;box-sizing:border-box}
+input{background:rgba(0,0,0,0.2);border:1px solid var(--border);color:var(--txt-main);padding:10px 14px;border-radius:8px;margin:5px 0;transition:all 0.2s;font-family:inherit;font-size:0.95em}
+input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px var(--ring)}
+button{cursor:pointer;background:var(--p);color:#fff;font-weight:600;border:none;padding:10px 16px;border-radius:8px;transition:all 0.2s;font-family:inherit;font-size:0.95em}
+button:hover{background:var(--p-hover);transform:translateY(-1px);box-shadow:0 4px 12px rgba(99,102,241,0.3)}
+.card{background:var(--card);padding:24px;border-radius:16px;margin-bottom:24px;border:1px solid var(--border);box-shadow:0 8px 32px rgba(0,0,0,0.2)}
 .row{display:flex;justify-content:space-between;align-items:center}
-table{width:100%;border-collapse:collapse;margin-top:10px}
-th,td{border:1px solid #333;padding:8px;text-align:center;min-width:40px;}
-th{background:#2a2a2a;color:var(--s);font-size:0.85em}
-.done{background:var(--good);color:#000;cursor:pointer}
-.missed{background:#333;color:#777;cursor:pointer}
-.week-label{background:#121212;color:#aaa;text-transform:uppercase;font-size:0.75em;letter-spacing:1px}
-.streak{background:rgba(255,165,0,0.1);color:#ffa500;padding:2px 6px;border-radius:10px;font-size:0.75em;margin-left:5px;display:inline-block;border:1px solid #ffa500}
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-canvas{max-width:100%;background:#1a1a1a;border-radius:4px;padding:10px;}
-a{color:var(--s);text-decoration:none}
-.nav-link{padding:5px 10px;border-radius:4px;background:#333;color:#fff;}
-.nav-link.active{background:var(--p);color:#000}
-.ctrl-btn{background:transparent;color:#777;border:none;padding:2px 6px;font-size:1.1em;cursor:pointer}
-.ctrl-btn:hover{color:#fff}
-.ctrl-btn.del:hover{color:var(--err)}
-.today-col{border-left:3px solid var(--p)!important;border-right:3px solid var(--p)!important;position:relative}
-.today-col.missed{background:rgba(187,134,252,0.15)!important}
-.today-label{background:var(--p);color:#000;font-weight:bold;padding:2px 6px;border-radius:4px;font-size:0.7em}
+table{width:100%;border-collapse:separate;border-spacing:0;margin-top:16px}
+th,td{border:1px solid var(--border);padding:12px 8px;text-align:center;min-width:44px;transition:background 0.2s}
+th{background:rgba(255,255,255,0.02);color:var(--txt-muted);font-size:0.85em;font-weight:600;letter-spacing:0.05em}
+td{background:rgba(0,0,0,0.1)}
+tr td:first-child{border-top-left-radius:8px;border-bottom-left-radius:8px}
+tr td:last-child{border-top-right-radius:8px;border-bottom-right-radius:8px}
+.done{background:rgba(16,185,129,0.15);color:var(--good);cursor:pointer;text-shadow:0 0 8px rgba(16,185,129,0.4);font-weight:bold}
+.done:hover{background:rgba(16,185,129,0.25)}
+.missed{color:var(--txt-muted);cursor:pointer}
+.missed:hover{background:rgba(255,255,255,0.05)}
+.week-label{background:transparent;color:var(--txt-muted);text-transform:uppercase;font-size:0.7em;letter-spacing:1px;border-bottom:none;padding-bottom:4px}
+.streak{background:rgba(245,158,11,0.1);color:#f59e0b;padding:2px 8px;border-radius:12px;font-size:0.75em;margin-left:8px;display:inline-flex;align-items:center;border:1px solid rgba(245,158,11,0.2);font-weight:600}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+@media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr; } }
+canvas{max-width:100%;background:rgba(0,0,0,0.2);border-radius:12px;padding:16px;border:1px solid var(--border);margin-top:16px}
+a{color:var(--p);text-decoration:none;transition:color 0.2s}
+.nav-link{padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.05);color:var(--txt-muted);font-weight:500;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px}
+.nav-link:hover{background:rgba(255,255,255,0.1);color:var(--txt-main)}
+.nav-link.active{background:var(--p);color:#fff;box-shadow:0 4px 12px rgba(99,102,241,0.2)}
+.ctrl-btn{background:rgba(255,255,255,0.05);color:var(--txt-muted);border:1px solid transparent;padding:4px 8px;border-radius:6px;font-size:0.9em;cursor:pointer;margin-left:4px}
+.ctrl-btn:hover{background:rgba(255,255,255,0.1);color:var(--txt-main);border-color:var(--border)}
+.ctrl-btn.del:hover{background:rgba(244,63,94,0.1);color:var(--err);border-color:rgba(244,63,94,0.2)}
+.today-col{border-left:2px solid var(--p)!important;border-right:2px solid var(--p)!important;position:relative;background:rgba(99,102,241,0.05)}
+.today-col.missed{background:rgba(99,102,241,0.05)!important}
+.today-label{background:var(--p);color:#fff;font-weight:700;padding:2px 6px;border-radius:4px;font-size:0.65em;margin-top:4px;display:inline-block;letter-spacing:0.05em;box-shadow:0 2px 8px rgba(99,102,241,0.4)}
+header strong{font-size:1.1em;letter-spacing:-0.02em}
+header{display:flex;justify-content:space-between;align-items:center;padding:16px 24px!important;background:var(--card)!important;border-bottom:1px solid var(--border)!important;margin-bottom:30px!important;border-radius:16px!important;box-shadow:0 4px 20px rgba(0,0,0,0.2)!important}
 `;
 
 function renderNav(active) {
@@ -215,8 +226,8 @@ function renderDash(user, habits, logs) {
         await fetch('/habits/api/reorder', {method:'POST', body:fd}); location.reload();
       }
 
-      new Chart(document.getElementById('habitChart'), { type: 'bar', data: { labels: ${JSON.stringify(habitsWithData.map(h => h.name))}, datasets: [{ label: 'Days Completed (30d)', data: ${JSON.stringify(habitsWithData.map(h => h.last30))}, backgroundColor: '#03dac6' }] }, options: { scales: { y: { max: 30 } }, plugins:{legend:{labels:{color:'#fff'}}} } });
-      new Chart(document.getElementById('dailyChart'), { type: 'line', data: { labels: ${JSON.stringify(allDays.slice().reverse().map(d => d.slice(5)))}, datasets: [{ label: 'Habits Done', data: ${JSON.stringify(dailyTotals.slice().reverse())}, borderColor: '#bb86fc', tension: 0.3, fill:true, backgroundColor:'rgba(187,134,252,0.1)' }] }, options: { scales: { y: { beginAtZero: true } } } });
+      new Chart(document.getElementById('habitChart'), { type: 'bar', data: { labels: ${JSON.stringify(habitsWithData.map(h => h.name))}, datasets: [{ label: 'Days Completed (30d)', data: ${JSON.stringify(habitsWithData.map(h => h.last30))}, backgroundColor: '#6366f1', borderRadius: 4 }] }, options: { scales: { y: { max: 30, grid: {color: 'rgba(255,255,255,0.05)'}, ticks: {color: '#94a3b8'} }, x: { grid: {display:false}, ticks: {color: '#94a3b8'} } }, plugins:{legend:{labels:{color:'#f8fafc', font: {family: 'Inter'}}}} } });
+      new Chart(document.getElementById('dailyChart'), { type: 'line', data: { labels: ${JSON.stringify(allDays.slice().reverse().map(d => d.slice(5)))}, datasets: [{ label: 'Habits Done', data: ${JSON.stringify(dailyTotals.slice().reverse())}, borderColor: '#f43f5e', tension: 0.4, fill:true, backgroundColor:'rgba(244,63,94,0.1)', pointBackgroundColor: '#f43f5e' }] }, options: { scales: { y: { beginAtZero: true, grid: {color: 'rgba(255,255,255,0.05)'}, ticks: {color: '#94a3b8'} }, x: { grid: {display:false}, ticks: {color: '#94a3b8'} } }, plugins:{legend:{labels:{color:'#f8fafc', font: {family: 'Inter'}}}} } });
     </script>
   </body></html>`;
 }
