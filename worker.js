@@ -15,31 +15,13 @@ export default {
 
     if (sessionId) user = await env.AUTH_DB.prepare('SELECT * FROM sessions WHERE id = ? AND expires > ?').bind(sessionId, Date.now()).first();
 
-    // --- 2. PUBLIC ROUTES ---
-    if (url.pathname === '/habits/login' && method === 'POST') {
-      const fd = await req.formData();
-      const dbUser = await env.AUTH_DB.prepare('SELECT * FROM users WHERE username = ? AND password = ?').bind(fd.get('username'), await hash(fd.get('password'))).first();
-      if (!dbUser) return new Response('Invalid credentials', { status: 401 });
-      const newSess = crypto.randomUUID();
-      await env.AUTH_DB.prepare('INSERT INTO sessions (id, username, role, expires) VALUES (?, ?, ?, ?)').bind(newSess, dbUser.username, dbUser.role, Date.now() + 86400000).run();
-      return new Response('OK', { headers: { 'Set-Cookie': `sess=${newSess}; HttpOnly; Secure; SameSite=Strict; Path=/` } });
+    // --- 3. PROTECTED ROUTES --- redirect to central auth if not logged in
+    if (!user) {
+      return new Response(null, {
+        status: 302,
+        headers: { 'Location': `/auth/login?redirect=${encodeURIComponent(url.pathname)}` }
+      });
     }
-
-    if (url.pathname === '/habits/register' && method === 'POST') {
-      const fd = await req.formData();
-      const existing = await env.AUTH_DB.prepare('SELECT username FROM users WHERE username = ?').bind(fd.get('username')).first();
-      if (existing) return new Response('Username taken', { status: 400 });
-      await env.AUTH_DB.prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)').bind(fd.get('username'), await hash(fd.get('password')), 'user').run();
-      return new Response('OK');
-    }
-
-    if (url.pathname === '/habits/logout') {
-      if (sessionId) await env.AUTH_DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run();
-      return new Response('Logged out', { status: 302, headers: { 'Location': '/habits', 'Set-Cookie': 'sess=; Max-Age=0; Path=/' } });
-    }
-
-    // --- 3. PROTECTED ROUTES ---
-    if (!user) return new Response(renderLogin(), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 
     // API: ADD HABIT
     if (url.pathname === '/habits/api/add' && method === 'POST') {
@@ -144,62 +126,10 @@ function renderNav(active) {
     <a href="/habits" class="nav-link ${active === 'dash' ? 'active' : ''}"><span style="font-size:1.2em">📅</span> Tracker</a>
     <a href="/habits/history" class="nav-link ${active === 'hist' ? 'active' : ''}"><span style="font-size:1.2em">📚</span> History</a>
     <a href="/habits/settings" class="nav-link ${active === 'set' ? 'active' : ''}"><span style="font-size:1.2em">⚙</span> Settings</a>
-    <a href="/habits/logout" style="color:var(--err);align-self:center;margin-left:auto">Logout</a>
+    <a href="/auth/logout" style="color:var(--err);align-self:center;margin-left:auto">Logout</a>
   </div>`;
 }
 
-function renderLogin() {
-  return `<!DOCTYPE html><html lang="en"><head><title>Login</title><style>${CSS}</style></head>
-  <body style="display:flex;justify-content:center;align-items:center;height:100vh">
-    <div class="card" style="width:350px;text-align:center">
-      <h2 style="margin-bottom:5px">🎯 Habit Tracker</h2>
-      <p style="color:#aaa;font-size:0.9em;margin-top:0">Track your daily habits</p>
-      
-      <div id="forms">
-        <form id="loginForm" onsubmit="event.preventDefault();doLogin(this)" autocomplete="on">
-          <input type="text" name="username" id="username" placeholder="Username" required autocomplete="username" style="width:90%"><br>
-          <input type="password" name="password" id="password" placeholder="Password" required autocomplete="current-password" style="width:90%"><br>
-          <button type="submit" style="width:100%;margin-top:5px">LOGIN</button>
-        </form>
-        <button onclick="toggleReg()" style="width:96%;margin-top:10px;background:var(--s);color:#000">CREATE ACCOUNT</button>
-      </div>
-      
-      <div id="reg" style="display:none">
-        <form id="registerForm" onsubmit="event.preventDefault();doReg(this)" autocomplete="on">
-          <input type="text" name="username" placeholder="New Username" required autocomplete="username" style="width:90%"><br>
-          <input type="password" name="password" placeholder="New Password" required autocomplete="new-password" style="width:90%"><br>
-          <button type="submit" style="width:100%;background:var(--s);margin-top:5px">REGISTER</button>
-        </form>
-        <button onclick="toggleReg()" style="width:96%;margin-top:10px;background:#444;color:#fff">BACK TO LOGIN</button>
-      </div>
-      
-      <div id="msg" style="color:var(--err);margin-top:10px;font-size:0.9em"></div>
-    </div>
-    <script>
-      function toggleReg(){ 
-        document.getElementById('forms').style.display = document.getElementById('forms').style.display === 'none' ? 'block' : 'none'; 
-        document.getElementById('reg').style.display = document.getElementById('reg').style.display === 'none' ? 'block' : 'none'; 
-        document.getElementById('msg').innerText=''; 
-      } 
-      async function doLogin(f){ 
-        const fd = new FormData(f);
-        const r = await fetch('/habits/login', {method:'POST', body:fd}); 
-        if(r.ok) location.reload(); 
-        else document.getElementById('msg').innerText = "Invalid credentials"; 
-      } 
-      async function doReg(f){ 
-        const fd = new FormData(f);
-        const r = await fetch('/habits/register', {method:'POST', body:fd}); 
-        if(r.ok) { 
-          alert('Account created! Please log in.'); 
-          toggleReg(); 
-        } else {
-          document.getElementById('msg').innerText = "Username already taken"; 
-        }
-      }
-    </script>
-  </body></html>`;
-}
 
 function renderSettings(user) { /* Unchanged from V3 */
   return `<!DOCTYPE html><html lang="en"><head><title>Settings</title><style>${CSS}</style></head><body>
