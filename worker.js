@@ -133,18 +133,31 @@ header{display:flex;justify-content:space-between;align-items:center;padding:16p
 `;
 
 function renderNav(active) {
-  return `<div style="display:flex;gap:10px">
-    <a href="/habits" class="nav-link ${active === 'dash' ? 'active' : ''}"><span style="font-size:1.2em">📅</span> Tracker</a>
-    <a href="/habits/history" class="nav-link ${active === 'hist' ? 'active' : ''}"><span style="font-size:1.2em">📚</span> History</a>
-    <a href="/habits/settings" class="nav-link ${active === 'set' ? 'active' : ''}"><span style="font-size:1.2em">⚙</span> Settings</a>
-    <a href="/auth/logout" style="color:var(--err);align-self:center;margin-left:auto">Logout</a>
+  return `<div style="display:flex;gap:8px;align-items:center">
+    <a href="/" class="nav-link" title="Back to Hub" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);gap:6px">🏠 Hub</a>
+    <div style="width:1px;height:24px;background:var(--border);margin:0 4px"></div>
+    <a href="/habits" class="nav-link ${active === 'dash' ? 'active' : ''}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      Tracker</a>
+    <a href="/habits/history" class="nav-link ${active === 'hist' ? 'active' : ''}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+      History</a>
+    <a href="/habits/settings" class="nav-link ${active === 'set' ? 'active' : ''}">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      Settings</a>
+    <a href="/auth/logout" style="color:var(--err);align-self:center;margin-left:8px;font-size:0.9em;font-weight:500;padding:8px 12px;border-radius:8px;background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.15);transition:all 0.2s" onmouseover="this.style.background='rgba(244,63,94,0.15)'" onmouseout="this.style.background='rgba(244,63,94,0.08)'">Sign out</a>
   </div>`;
 }
 
 
 function renderSettings(user) { /* Unchanged from V3 */
-  return `<!DOCTYPE html><html lang="en"><head><title>Settings</title><style>${CSS}</style></head><body>
-    <header class="row card" style="padding:15px"><div><strong>Settings</strong> | ${user.username}</div>${renderNav('set')}</header>
+  return `<!DOCTYPE html><html lang="en"><head><title>Settings</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>
+    <header>
+      <div style="display:flex;align-items:center;gap:12px">
+        <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:8px;color:var(--txt-main)"><span style="width:30px;height:30px;background:linear-gradient(135deg,#6366f1,#f43f5e);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85em;color:#fff;flex-shrink:0">111</span><strong>Habit Tracker</strong></a>
+      </div>
+      ${renderNav('set')}
+    </header>
     <div class="card"><h3>Change Password</h3><form onsubmit="event.preventDefault();changePw(this)"><input type="password" name="p" placeholder="New Password" required><br><button>Update</button></form></div>
     <script>async function changePw(f){ const r=await fetch('/habits/api/password',{method:'POST',body:new FormData(f)}); if(r.ok) alert('Updated.'); }</script></body></html>`;
 }
@@ -154,8 +167,14 @@ function renderHistory(user, habits, logs) { /* Unchanged from V3 */
   logs.forEach(l => { const yr = l.date.slice(0, 4), mo = l.date.slice(5, 7); if (!historyData[yr]) historyData[yr] = {}; if (!historyData[yr][mo]) historyData[yr][mo] = {}; historyData[yr][mo][l.habit_id] = (historyData[yr][mo][l.habit_id] || 0) + 1; });
   const years = Object.keys(historyData).sort((a, b) => b - a);
   const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'], monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `<!DOCTYPE html><html lang="en"><head><title>History</title><style>${CSS}</style></head><body>
-    <header class="row card" style="padding:15px"><div><strong>Global History</strong> | ${user.username}</div>${renderNav('hist')}</header>
+  return `<!DOCTYPE html><html lang="en"><head><title>History</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>
+    <header>
+      <div style="display:flex;align-items:center;gap:12px">
+        <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:8px;color:var(--txt-main)"><span style="width:30px;height:30px;background:linear-gradient(135deg,#6366f1,#f43f5e);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85em;color:#fff;flex-shrink:0">111</span><strong>Habit Tracker</strong></a>
+        <span style="color:var(--txt-muted);font-size:0.8em;padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:20px;border:1px solid var(--border)">${user.username}</span>
+      </div>
+      ${renderNav('hist')}
+    </header>
     ${years.length === 0 ? '<div class="card">No history available yet.</div>' : years.map(yr => `<div class="card"><h3>📅 ${yr} Breakdown</h3><div style="overflow-x:auto"><table><tr><th style="background:#121212">Habit</th>${monthNames.map(m => `<th>${m}</th>`).join('')}<th>Total</th></tr>${habits.map(h => { let yTot = 0; const mCols = months.map(m => { const count = historyData[yr]?.[m]?.[h.id] || 0; yTot += count; const alpha = count / 30; return `<td style="background:rgba(76, 175, 80, ${alpha}); color:${count > 0 ? '#fff' : '#444'}">${count}</td>`; }).join(''); return `<tr><td style="font-weight:bold">${h.name}</td>${mCols}<td style="font-weight:bold;color:var(--p)">${yTot}</td></tr>`; }).join('')}</table></div></div>`).join('')}
   </body></html>`;
 }
@@ -177,8 +196,14 @@ function renderDash(user, habits, logs) {
   const worst = sorted.length ? sorted[sorted.length - 1] : { name: 'N/A', last30: 0 };
   const dailyTotals = allDays.map(d => logs.filter(l => l.date === d).length);
 
-  return `<!DOCTYPE html><html lang="en"><head><title>Habits</title><style>${CSS}</style><script src="https://cdn.jsdelivr.net/npm/chart.js"></script></head><body>
-    <header class="row card" style="padding:15px"><div><strong>Habit Tracker</strong> | ${user.username}</div>${renderNav('dash')}</header>
+  return `<!DOCTYPE html><html lang="en"><head><title>Habits</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style><script src="https://cdn.jsdelivr.net/npm/chart.js"></script></head><body>
+    <header>
+      <div style="display:flex;align-items:center;gap:12px">
+        <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:8px;color:var(--txt-main)"><span style="width:30px;height:30px;background:linear-gradient(135deg,#6366f1,#f43f5e);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85em;color:#fff;flex-shrink:0">111</span><strong>Habit Tracker</strong></a>
+        <span style="color:var(--txt-muted);font-size:0.8em;padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:20px;border:1px solid var(--border)">${user.username}</span>
+      </div>
+      ${renderNav('dash')}
+    </header>
 
     <div class="card">
       <div class="row"><h3>📊 14-Day Grid</h3><form onsubmit="event.preventDefault();addHabit(this)" style="display:flex;gap:5px"><input type="text" name="name" placeholder="New Habit..." required><button>Add</button></form></div>
