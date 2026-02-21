@@ -129,37 +129,79 @@ a{color:var(--p);text-decoration:none;transition:color 0.2s}
 .today-col.missed{background:rgba(99,102,241,0.05)!important}
 .today-label{background:var(--p);color:#fff;font-weight:700;padding:2px 6px;border-radius:4px;font-size:0.65em;margin-top:4px;display:inline-block;letter-spacing:0.05em;box-shadow:0 2px 8px rgba(99,102,241,0.4)}
 header strong{font-size:1.1em;letter-spacing:-0.02em}
-header{display:flex;justify-content:space-between;align-items:center;padding:16px 24px!important;background:var(--card)!important;border-bottom:1px solid var(--border)!important;margin-bottom:30px!important;border-radius:16px!important;box-shadow:0 4px 20px rgba(0,0,0,0.2)!important}
+header{display:flex;justify-content:space-between;align-items:center;min-height:64px;padding:0 24px!important;background:var(--card)!important;border-bottom:1px solid var(--border)!important;margin-bottom:30px!important;border-radius:16px!important;box-shadow:0 4px 20px rgba(0,0,0,0.2)!important;flex-wrap:nowrap;gap:12px}
+.user-wrap{position:relative}
+.user-btn{display:flex;align-items:center;gap:8px;color:var(--txt-main);font-size:0.9em;font-weight:500;padding:9px 14px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid var(--border);cursor:pointer;transition:all 0.2s;white-space:nowrap;font-family:inherit}
+.user-btn:hover{background:rgba(255,255,255,0.1);transform:none;box-shadow:none}
+.user-btn .caret{transition:transform 0.2s;margin-left:2px}
+.user-wrap.open .user-btn .caret{transform:rotate(180deg)}
+.user-dropdown{display:none;position:absolute;right:0;top:calc(100% + 8px);background:#1a2030;border:1px solid var(--border);border-radius:14px;min-width:210px;box-shadow:0 24px 48px rgba(0,0,0,0.5);z-index:999;overflow:hidden}
+.user-wrap.open .user-dropdown{display:block;animation:fadeInDropdown 0.15s ease-out}
+@keyframes fadeInDropdown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.user-dropdown-header{padding:14px 16px 10px;border-bottom:1px solid var(--border)}
+.user-dropdown-header .uname{font-weight:700;color:var(--txt-main);font-size:0.95em}
+.user-dropdown-header .role{color:var(--txt-muted);font-size:0.78em;margin-top:2px}
+.user-dropdown a{display:flex;align-items:center;gap:10px;padding:11px 16px;color:var(--txt-main);text-decoration:none;font-size:0.9em;font-weight:500;transition:background 0.15s}
+.user-dropdown a:hover{background:rgba(255,255,255,0.06)}
+.user-dropdown .sep{height:1px;background:var(--border);margin:4px 0}
+.user-dropdown .signout{color:var(--err)}
+.user-dropdown .signout:hover{background:rgba(244,63,94,0.08)}
 `;
 
-function renderNav(active) {
-  return `<div style="display:flex;gap:8px;align-items:center">
-    <a href="/" class="nav-link" title="Back to Hub" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);gap:6px">🏠 Hub</a>
-    <div style="width:1px;height:24px;background:var(--border);margin:0 4px"></div>
+function renderBrand() {
+  return `<a href="/" style="text-decoration:none;display:flex;align-items:center;gap:8px;flex-shrink:0">
+    <span style="width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#f43f5e);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9em;color:#fff;flex-shrink:0;box-shadow:0 0 16px rgba(99,102,241,0.5)">111</span>
+    <span style="font-weight:700;font-size:1.1em;color:#fff;letter-spacing:-0.02em">111<span style="color:#6366f1">iridescence</span></span>
+  </a>`;
+}
+
+function renderUserDropdown(username) {
+  return `<div class="user-wrap" id="uw">
+    <button class="user-btn" onclick="document.getElementById('uw').classList.toggle('open')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
+      ${username}
+      <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="user-dropdown">
+      <div class="user-dropdown-header"><div class="uname">${username}</div><div class="role">Habit Tracker</div></div>
+      <a href="/auth/account">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
+        Account Preferences
+      </a>
+      <div class="sep"></div>
+      <a href="/auth/logout" class="signout">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </a>
+    </div>
+  </div>
+  <script>document.addEventListener('click',e=>{const w=document.getElementById('uw');if(w&&!w.contains(e.target))w.classList.remove('open')});</script>`;
+}
+
+function renderNav(active, username) {
+  return `<div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+    <div style="width:1px;height:24px;background:var(--border)"></div>
+    <span style="color:var(--txt-muted);font-size:0.85em;font-weight:600;letter-spacing:0.01em">Habit Tracker</span>
+    <div style="width:1px;height:24px;background:var(--border)"></div>
     <a href="/habits" class="nav-link ${active === 'dash' ? 'active' : ''}">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
       Tracker</a>
     <a href="/habits/history" class="nav-link ${active === 'hist' ? 'active' : ''}">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       History</a>
-    <a href="/habits/settings" class="nav-link ${active === 'set' ? 'active' : ''}">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-      Settings</a>
-    <a href="/auth/logout" style="color:var(--err);align-self:center;margin-left:8px;font-size:0.9em;font-weight:500;padding:8px 12px;border-radius:8px;background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.15);transition:all 0.2s" onmouseover="this.style.background='rgba(244,63,94,0.15)'" onmouseout="this.style.background='rgba(244,63,94,0.08)'">Sign out</a>
+    ${renderUserDropdown(username)}
   </div>`;
 }
 
 
-function renderSettings(user) { /* Unchanged from V3 */
-  return `<!DOCTYPE html><html lang="en"><head><title>Settings</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>
+function renderSettings(user) {
+  return `<!DOCTYPE html><html lang="en"><head><title>Habit Tracker · 111iridescence</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>
     <header>
-      <div style="display:flex;align-items:center;gap:12px">
-        <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:8px;color:var(--txt-main)"><span style="width:30px;height:30px;background:linear-gradient(135deg,#6366f1,#f43f5e);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85em;color:#fff;flex-shrink:0">111</span><strong>Habit Tracker</strong></a>
-      </div>
-      ${renderNav('set')}
+      ${renderBrand()}
+      ${renderNav('set', user.username)}
     </header>
-    <div class="card"><h3>Change Password</h3><form onsubmit="event.preventDefault();changePw(this)"><input type="password" name="p" placeholder="New Password" required><br><button>Update</button></form></div>
-    <script>async function changePw(f){ const r=await fetch('/habits/api/password',{method:'POST',body:new FormData(f)}); if(r.ok) alert('Updated.'); }</script></body></html>`;
+    <div class="card"><h3>App Settings</h3><p style="color:var(--txt-muted);margin-bottom:16px">Manage your account from the user menu in the top right.</p><a href="/auth/account" class="nav-link active" style="display:inline-flex">Open Account Preferences</a></div>
+  </body></html>`;
 }
 
 function renderHistory(user, habits, logs) { /* Unchanged from V3 */
@@ -167,13 +209,10 @@ function renderHistory(user, habits, logs) { /* Unchanged from V3 */
   logs.forEach(l => { const yr = l.date.slice(0, 4), mo = l.date.slice(5, 7); if (!historyData[yr]) historyData[yr] = {}; if (!historyData[yr][mo]) historyData[yr][mo] = {}; historyData[yr][mo][l.habit_id] = (historyData[yr][mo][l.habit_id] || 0) + 1; });
   const years = Object.keys(historyData).sort((a, b) => b - a);
   const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'], monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `<!DOCTYPE html><html lang="en"><head><title>History</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>
+  return `<!DOCTYPE html><html lang="en"><head><title>History · Habit Tracker</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>
     <header>
-      <div style="display:flex;align-items:center;gap:12px">
-        <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:8px;color:var(--txt-main)"><span style="width:30px;height:30px;background:linear-gradient(135deg,#6366f1,#f43f5e);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85em;color:#fff;flex-shrink:0">111</span><strong>Habit Tracker</strong></a>
-        <span style="color:var(--txt-muted);font-size:0.8em;padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:20px;border:1px solid var(--border)">${user.username}</span>
-      </div>
-      ${renderNav('hist')}
+      ${renderBrand()}
+      ${renderNav('hist', user.username)}
     </header>
     ${years.length === 0 ? '<div class="card">No history available yet.</div>' : years.map(yr => `<div class="card"><h3>📅 ${yr} Breakdown</h3><div style="overflow-x:auto"><table><tr><th style="background:#121212">Habit</th>${monthNames.map(m => `<th>${m}</th>`).join('')}<th>Total</th></tr>${habits.map(h => { let yTot = 0; const mCols = months.map(m => { const count = historyData[yr]?.[m]?.[h.id] || 0; yTot += count; const alpha = count / 30; return `<td style="background:rgba(76, 175, 80, ${alpha}); color:${count > 0 ? '#fff' : '#444'}">${count}</td>`; }).join(''); return `<tr><td style="font-weight:bold">${h.name}</td>${mCols}<td style="font-weight:bold;color:var(--p)">${yTot}</td></tr>`; }).join('')}</table></div></div>`).join('')}
   </body></html>`;
@@ -196,13 +235,10 @@ function renderDash(user, habits, logs) {
   const worst = sorted.length ? sorted[sorted.length - 1] : { name: 'N/A', last30: 0 };
   const dailyTotals = allDays.map(d => logs.filter(l => l.date === d).length);
 
-  return `<!DOCTYPE html><html lang="en"><head><title>Habits</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style><script src="https://cdn.jsdelivr.net/npm/chart.js"></script></head><body>
+  return `<!DOCTYPE html><html lang="en"><head><title>Habits · 111iridescence</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style><script src="https://cdn.jsdelivr.net/npm/chart.js"></script></head><body>
     <header>
-      <div style="display:flex;align-items:center;gap:12px">
-        <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:8px;color:var(--txt-main)"><span style="width:30px;height:30px;background:linear-gradient(135deg,#6366f1,#f43f5e);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85em;color:#fff;flex-shrink:0">111</span><strong>Habit Tracker</strong></a>
-        <span style="color:var(--txt-muted);font-size:0.8em;padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:20px;border:1px solid var(--border)">${user.username}</span>
-      </div>
-      ${renderNav('dash')}
+      ${renderBrand()}
+      ${renderNav('dash', user.username)}
     </header>
 
     <div class="card">
