@@ -148,17 +148,19 @@ header{display:flex;justify-content:space-between;align-items:center;min-height:
 .user-dropdown .signout:hover{background:rgba(244,63,94,0.08)}
 `;
 
-function renderBrand() {
-  return `<a href="/" style="text-decoration:none;display:flex;align-items:center;gap:8px;flex-shrink:0">
-    <span style="width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#f43f5e);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9em;color:#fff;flex-shrink:0;box-shadow:0 0 16px rgba(99,102,241,0.5)">111</span>
-    <span style="font-weight:700;font-size:1.1em;color:#fff;letter-spacing:-0.02em">111<span style="color:#6366f1">iridescence</span></span>
+function renderBrand(appName) {
+  return `<a href="/" style="text-decoration:none;display:flex;align-items:center;gap:10px;flex-shrink:0">
+    <span style="width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#f43f5e);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9em;color:#fff;flex-shrink:0;box-shadow:0 0 18px rgba(99,102,241,0.55)">111</span>
+    <div style="display:flex;flex-direction:column;line-height:1.25">
+      <span style="font-weight:700;font-size:1.1em;color:#fff;letter-spacing:-0.02em">111<span style="color:#6366f1;text-shadow:0 0 20px rgba(99,102,241,0.6)">iridescence</span></span>
+      <span style="font-size:0.72em;color:#94a3b8;font-weight:500;letter-spacing:0.03em">${appName}</span>
+    </div>
   </a>`;
 }
 
 function renderUserDropdown(username) {
   return `<div class="user-wrap" id="uw">
     <button class="user-btn" onclick="document.getElementById('uw').classList.toggle('open')">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
       ${username}
       <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
@@ -180,9 +182,6 @@ function renderUserDropdown(username) {
 
 function renderNav(active, username) {
   return `<div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
-    <div style="width:1px;height:24px;background:var(--border)"></div>
-    <span style="color:var(--txt-muted);font-size:0.85em;font-weight:600;letter-spacing:0.01em">Habit Tracker</span>
-    <div style="width:1px;height:24px;background:var(--border)"></div>
     <a href="/habits" class="nav-link ${active === 'dash' ? 'active' : ''}">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
       Tracker</a>
@@ -197,7 +196,7 @@ function renderNav(active, username) {
 function renderSettings(user) {
   return `<!DOCTYPE html><html lang="en"><head><title>Habit Tracker · 111iridescence</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>
     <header>
-      ${renderBrand()}
+      ${renderBrand('Habit Tracker')}
       ${renderNav('set', user.username)}
     </header>
     <div class="card"><h3>App Settings</h3><p style="color:var(--txt-muted);margin-bottom:16px">Manage your account from the user menu in the top right.</p><a href="/auth/account" class="nav-link active" style="display:inline-flex">Open Account Preferences</a></div>
@@ -211,7 +210,7 @@ function renderHistory(user, habits, logs) { /* Unchanged from V3 */
   const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'], monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `<!DOCTYPE html><html lang="en"><head><title>History · Habit Tracker</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style></head><body>
     <header>
-      ${renderBrand()}
+      ${renderBrand('Habit Tracker')}
       ${renderNav('hist', user.username)}
     </header>
     ${years.length === 0 ? '<div class="card">No history available yet.</div>' : years.map(yr => `<div class="card"><h3>📅 ${yr} Breakdown</h3><div style="overflow-x:auto"><table><tr><th style="background:#121212">Habit</th>${monthNames.map(m => `<th>${m}</th>`).join('')}<th>Total</th></tr>${habits.map(h => { let yTot = 0; const mCols = months.map(m => { const count = historyData[yr]?.[m]?.[h.id] || 0; yTot += count; const alpha = count / 30; return `<td style="background:rgba(76, 175, 80, ${alpha}); color:${count > 0 ? '#fff' : '#444'}">${count}</td>`; }).join(''); return `<tr><td style="font-weight:bold">${h.name}</td>${mCols}<td style="font-weight:bold;color:var(--p)">${yTot}</td></tr>`; }).join('')}</table></div></div>`).join('')}
@@ -237,7 +236,7 @@ function renderDash(user, habits, logs) {
 
   return `<!DOCTYPE html><html lang="en"><head><title>Habits · 111iridescence</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>${CSS}</style><script src="https://cdn.jsdelivr.net/npm/chart.js"></script></head><body>
     <header>
-      ${renderBrand()}
+      ${renderBrand('Habit Tracker')}
       ${renderNav('dash', user.username)}
     </header>
 
