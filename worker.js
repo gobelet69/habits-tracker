@@ -211,6 +211,27 @@ function renderUserDropdown(username) {
   <script>document.addEventListener('click',e=>{const w=document.getElementById('uw');if(w&&!w.contains(e.target))w.classList.remove('open')});</script>`;
 }
 
+function renderAppSwitcher() {
+  return `<div class="user-wrap" id="uapps">
+    <button class="user-btn" onclick="document.getElementById('uapps').classList.toggle('open')">
+      Apps
+      <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="user-dropdown">
+      <div class="user-dropdown-header"><div class="uname">Switch app</div><div class="role">111iridescence webapps</div></div>
+      <a href="/">🏠 Hub</a>
+      <a href="/vault">🔒 Vault</a>
+      <a href="/habits">📈 Habits</a>
+      <a href="/todo">✅ Todo</a>
+      <a href="/courses">🎓 Courses</a>
+      <a href="/editor">📝 Editor</a>
+      <a href="/dashboard">📊 Dashboard</a>
+      <a href="/feed">📰 Feed</a>
+    </div>
+  </div>
+  <script>document.addEventListener('click',e=>{const w=document.getElementById('uapps');if(w&&!w.contains(e.target))w.classList.remove('open')});</script>`;
+}
+
 function renderNav(active, username) {
   return `<div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
     <a href="/habits" class="nav-link ${active === 'dash' ? 'active' : ''}">
@@ -220,6 +241,7 @@ function renderNav(active, username) {
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       History</a>
     ${renderUserDropdown(username)}
+    ${renderAppSwitcher()}
   </div>`;
 }
 
