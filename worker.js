@@ -13,7 +13,13 @@ export default {
     const sessionId = cookie ? cookie.split(';').find(c => c.trim().startsWith('sess='))?.split('=')[1] : null;
     let user = null;
 
-    if (sessionId) user = await env.AUTH_DB.prepare('SELECT * FROM sessions WHERE id = ? AND expires > ?').bind(sessionId, Date.now()).first();
+    if (sessionId) {
+      user = await env.AUTH_DB.prepare('SELECT * FROM sessions WHERE id = ? AND expires > ?').bind(sessionId, Date.now()).first();
+      if (user) {
+        const dbUser = await env.AUTH_DB.prepare('SELECT role FROM users WHERE username = ?').bind(user.username).first();
+        user.role = dbUser?.role || 'viewer';
+      }
+    }
 
     // --- 3. PROTECTED ROUTES --- redirect to central auth if not logged in
     if (!user) {
@@ -92,6 +98,24 @@ async function hash(str) {
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', buf))).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+function normalizeRole(r) {
+  if (r === 'admin') return 'owner';
+  if (r === 'guest+') return 'member';
+  if (r === 'guest') return 'viewer';
+  return r || 'viewer';
+}
+function isOwner(u) { return normalizeRole(u?.role) === 'owner'; }
+const ROLE_META = {
+  owner: { label: 'Owner', color: '#f43f5e', bg: 'rgba(244,63,94,0.15)', border: 'rgba(244,63,94,0.3)', icon: '🔑' },
+  member: { label: 'Member', color: '#A855F7', bg: 'rgba(168,85,247,0.15)', border: 'rgba(168,85,247,0.3)', icon: '📁' },
+  viewer: { label: 'Viewer', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.2)', icon: '👁' }
+};
+const ROLE_PERMS = {
+  owner: ['Upload any file type', 'Delete any file', 'Share files', 'Manage users & roles', 'Access admin panel'],
+  member: ['Upload any file type', 'Delete own files', 'Share files'],
+  viewer: ['Upload PDF files only', 'Delete own files']
+};
+
 // --- CSS ---
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -112,7 +136,8 @@ const CSS = `
   --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 *,*::before,*::after{box-sizing:border-box}
-body{margin:0 auto;font-family:var(--font);background:var(--bg);color:var(--text);max-width:1080px;padding:24px;line-height:1.5;font-size:14px;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.5;font-size:14px;-webkit-font-smoothing:antialiased}
+.page{max-width:1080px;margin:24px auto;padding:0 24px}
 h1,h2,h3,h4{letter-spacing:-0.01em;font-weight:700}
 h3{font-size:1.02rem;margin:0 0 12px}
 p{margin:6px 0}
@@ -160,17 +185,23 @@ header strong{font-size:1.05em;letter-spacing:-0.02em}
 .user-btn:hover{background:var(--surface-hover);transform:none;box-shadow:none}
 .user-btn .caret{transition:transform var(--transition);margin-left:2px;color:var(--text-muted)}
 .user-wrap.open .user-btn .caret{transform:rotate(180deg)}
-.user-dropdown{display:none;position:absolute;right:0;top:calc(100% + 8px);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);min-width:220px;box-shadow:var(--shadow-lg);z-index:999;overflow:hidden}
-.user-wrap.open .user-dropdown{display:block;animation:fadeInDropdown 150ms ease-out}
-@keyframes fadeInDropdown{from{opacity:0;transform:translateY(-4px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
-.user-dropdown-header{padding:14px 16px 10px;border-bottom:1px solid var(--border)}
-.user-dropdown-header .uname{font-weight:700;color:var(--text);font-size:0.92rem}
-.user-dropdown-header .role{color:var(--text-muted);font-size:0.76rem;margin-top:2px}
-.user-dropdown a{display:flex;align-items:center;gap:10px;padding:10px 16px;color:var(--text);text-decoration:none;font-size:0.86rem;font-weight:500;transition:background var(--transition)}
-.user-dropdown a:hover{background:var(--accent-soft);color:var(--text)}
-.user-dropdown .sep{height:1px;background:var(--border);margin:4px 0}
-.user-dropdown .signout{color:var(--danger)}
-.user-dropdown .signout:hover{background:var(--danger-soft);color:var(--danger)}
+.dd{display:none;position:absolute;right:0;top:calc(100% + 8px);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);min-width:240px;box-shadow:var(--shadow-lg);z-index:999;overflow:hidden}
+.user-wrap.open .dd{display:block;animation:dd 150ms ease-out}
+@keyframes dd{from{opacity:0;transform:translateY(-4px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.dd-hdr{padding:14px 16px 12px;border-bottom:1px solid var(--border)}
+.dd-name{font-weight:700;font-size:0.92rem;margin-bottom:7px}
+.role-badge{display:inline-flex;align-items:center;gap:5px;font-size:0.68rem;font-weight:700;padding:3px 10px;border-radius:999px;letter-spacing:0.04em;margin-bottom:9px;text-transform:uppercase}
+.perm-list{list-style:none}
+.perm-list li{font-size:0.76rem;color:var(--text-secondary);padding:2px 0;display:flex;align-items:center;gap:6px}
+.perm-list li.ok{color:var(--text)}
+.pcheck{width:14px;height:14px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:700}
+.pcheck.y{background:var(--good-soft);color:var(--good)}
+.pcheck.n{background:var(--surface-soft);color:var(--text-muted)}
+.ddl{display:flex;align-items:center;gap:10px;padding:10px 16px;color:var(--text);text-decoration:none;font-size:0.86rem;font-weight:500;transition:background var(--transition)}
+.ddl:hover{background:var(--accent-soft);color:var(--text)}
+.dd-sep{height:1px;background:var(--border);margin:4px 0}
+.ddl.out{color:var(--danger)!important}
+.ddl.out:hover{background:var(--danger-soft)!important;color:var(--danger)}
 `;
 
 const FAVICON = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23A855F7'/%3E%3Cstop offset='1' stop-color='%23EC4899'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='21' font-family='Arial,sans-serif' font-weight='900' font-size='12' fill='white' text-anchor='middle'%3E111%3C/text%3E%3C/svg%3E`;
@@ -185,24 +216,30 @@ function renderBrand(appName) {
   </a>`;
 }
 
-function renderUserDropdown(username) {
+function renderUserDropdown(user) {
+  const role = normalizeRole(user.role), rm = ROLE_META[role] || ROLE_META.viewer, perms = ROLE_PERMS[role] || [];
+  const all = ['Upload any file type', 'Delete any file', 'Share files', 'Manage users & roles', 'Access admin panel'];
   return `<div class="user-wrap" id="uw">
     <button class="user-btn" onclick="document.getElementById('uw').classList.toggle('open')">
-      ${username}
+      ${user.username}
       <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
-    <div class="user-dropdown">
-      <div class="user-dropdown-header"><div class="uname">${username}</div><div class="role">Habit Tracker</div></div>
-      <a href="/auth/account">
+    <div class="dd">
+      <div class="dd-hdr">
+        <div class="dd-name">${user.username}</div>
+        <span class="role-badge" style="background:${rm.bg};color:${rm.color};border:1px solid ${rm.border}">${rm.icon} ${rm.label}</span>
+        <ul class="perm-list">${all.map(p => { const h = perms.includes(p); return `<li class="${h ? 'ok' : ''}"><span class="pcheck ${h ? 'y' : 'n'}">${h ? '✓' : '✕'}</span>${p}</li>`; }).join('')}</ul>
+      </div>
+      <a href="/auth/account" class="ddl">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg>
         Account Preferences
       </a>
-      <a href="/auth/admin">
+      ${isOwner(user) ? `<a href="/auth/admin" class="ddl">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
         Admin Panel
-      </a>
-      <div class="sep"></div>
-      <a href="/auth/logout" class="signout">
+      </a>` : ''}
+      <div class="dd-sep"></div>
+      <a href="/auth/logout" class="ddl out">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Sign Out
       </a>
@@ -217,22 +254,21 @@ function renderAppSwitcher() {
       Apps
       <svg class="caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
-    <div class="user-dropdown">
-      <div class="user-dropdown-header"><div class="uname">Switch app</div><div class="role">111iridescence webapps</div></div>
-      <a href="/">🏠 Hub</a>
-      <a href="/vault">🔒 Vault</a>
-      <a href="/habits">📈 Habits</a>
-      <a href="/todo">✅ Todo</a>
-      <a href="/courses">🎓 Courses</a>
-      <a href="/editor">📝 Editor</a>
-      <a href="/dashboard">📊 Dashboard</a>
-      <a href="/feed">📰 Feed</a>
+    <div class="dd">
+      <a href="/" class="ddl">🏠 Hub</a>
+      <a href="/vault" class="ddl">🔒 Vault</a>
+      <a href="/habits" class="ddl">📈 Habits</a>
+      <a href="/todo" class="ddl">✅ Todo</a>
+      <a href="/courses" class="ddl">🎓 Courses</a>
+      <a href="/editor" class="ddl">📝 Editor</a>
+      <a href="/dashboard" class="ddl">📊 Dashboard</a>
+      <a href="/feed" class="ddl">📰 Feed</a>
     </div>
   </div>
   <script>document.addEventListener('click',e=>{const w=document.getElementById('uapps');if(w&&!w.contains(e.target))w.classList.remove('open')});</script>`;
 }
 
-function renderNav(active, username) {
+function renderNav(active, user) {
   return `<div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
     <a href="/habits" class="nav-link ${active === 'dash' ? 'active' : ''}">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
@@ -241,7 +277,7 @@ function renderNav(active, username) {
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       History</a>
     ${renderAppSwitcher()}
-    ${renderUserDropdown(username)}
+    ${renderUserDropdown(user)}
   </div>`;
 }
 
@@ -250,9 +286,9 @@ function renderSettings(user) {
   return `<!DOCTYPE html><html lang="en"><head><title>111 Habit Tracker</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/svg+xml" href="${FAVICON}"><style>${CSS}</style></head><body>
     <header>
       ${renderBrand('Habit Tracker')}
-      ${renderNav('set', user.username)}
+      ${renderNav('set', user)}
     </header>
-    <div class="card"><h3>App Settings</h3><p style="color:var(--txt-muted);margin-bottom:16px">Manage your account from the user menu in the top right.</p><a href="/auth/account" class="nav-link active" style="display:inline-flex">Open Account Preferences</a></div>
+    <div class="page"><div class="card"><h3>App Settings</h3><p style="color:var(--txt-muted);margin-bottom:16px">Manage your account from the user menu in the top right.</p><a href="/auth/account" class="nav-link active" style="display:inline-flex">Open Account Preferences</a></div></div>
   </body></html>`;
 }
 
@@ -264,9 +300,9 @@ function renderHistory(user, habits, logs) { /* Unchanged from V3 */
   return `<!DOCTYPE html><html lang="en"><head><title>111 Habit Tracker</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/svg+xml" href="${FAVICON}"><style>${CSS}</style></head><body>
     <header>
       ${renderBrand('Habit Tracker')}
-      ${renderNav('hist', user.username)}
+      ${renderNav('hist', user)}
     </header>
-    ${years.length === 0 ? '<div class="card">No history available yet.</div>' : years.map(yr => `<div class="card"><h3>📅 ${yr} Breakdown</h3><div style="overflow-x:auto"><table><tr><th style="background:#121212">Habit</th>${monthNames.map(m => `<th>${m}</th>`).join('')}<th>Total</th></tr>${habits.map(h => { let yTot = 0; const mCols = months.map(m => { const count = historyData[yr]?.[m]?.[h.id] || 0; yTot += count; const alpha = count / 30; return `<td style="background:rgba(76, 175, 80, ${alpha}); color:${count > 0 ? '#fff' : '#444'}">${count}</td>`; }).join(''); return `<tr><td style="font-weight:bold">${h.name}</td>${mCols}<td style="font-weight:bold;color:var(--p)">${yTot}</td></tr>`; }).join('')}</table></div></div>`).join('')}
+    <div class="page">${years.length === 0 ? '<div class="card">No history available yet.</div>' : years.map(yr => `<div class="card"><h3>📅 ${yr} Breakdown</h3><div style="overflow-x:auto"><table><tr><th style="background:#121212">Habit</th>${monthNames.map(m => `<th>${m}</th>`).join('')}<th>Total</th></tr>${habits.map(h => { let yTot = 0; const mCols = months.map(m => { const count = historyData[yr]?.[m]?.[h.id] || 0; yTot += count; const alpha = count / 30; return `<td style="background:rgba(76, 175, 80, ${alpha}); color:${count > 0 ? '#fff' : '#444'}">${count}</td>`; }).join(''); return `<tr><td style="font-weight:bold">${h.name}</td>${mCols}<td style="font-weight:bold;color:var(--p)">${yTot}</td></tr>`; }).join('')}</table></div></div>`).join('')}</div>
   </body></html>`;
 }
 
@@ -290,9 +326,9 @@ function renderDash(user, habits, logs) {
   return `<!DOCTYPE html><html lang="en"><head><title>111 Habit Tracker</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/svg+xml" href="${FAVICON}"><style>${CSS}</style><script src="https://cdn.jsdelivr.net/npm/chart.js"></script></head><body>
     <header>
       ${renderBrand('Habit Tracker')}
-      ${renderNav('dash', user.username)}
+      ${renderNav('dash', user)}
     </header>
-
+    <div class="page">
     <div class="card">
       <div class="row"><h3>📊 14-Day Grid</h3><form onsubmit="event.preventDefault();addHabit(this)" style="display:flex;gap:5px"><input type="text" name="name" placeholder="New Habit..." required><button>Add</button></form></div>
       <div style="overflow-x:auto"><table>
@@ -322,6 +358,7 @@ function renderDash(user, habits, logs) {
         <h3>📈 Daily Momentum (14 Days)</h3>
         <canvas id="dailyChart"></canvas>
       </div>
+    </div>
     </div>
 
     <script>
