@@ -153,7 +153,7 @@ a:hover{color:var(--accent-pink)}
 .today-col{border-left:2px solid var(--accent)!important;border-right:2px solid var(--accent)!important;position:relative;background:var(--accent-soft)!important}
 .today-col.missed{background:var(--accent-soft)!important}
 .today-label{background:var(--gradient);color:#fff;font-weight:700;padding:2px 7px;border-radius:var(--radius-sm);font-size:0.58rem;margin-top:4px;display:inline-block;letter-spacing:0.1em;box-shadow:0 2px 8px rgba(168,85,247,0.4);font-family:var(--font-mono)}
-header{display:flex;justify-content:space-between;align-items:center;min-height:64px;padding:12px 24px!important;background:var(--surface)!important;border:1px solid var(--border)!important;margin-bottom:24px!important;border-radius:var(--radius-lg)!important;box-shadow:var(--shadow-sm)!important;flex-wrap:nowrap;gap:12px}
+header{display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:var(--shadow-sm);position:sticky;top:0;z-index:50;flex-wrap:nowrap;gap:12px}
 header strong{font-size:1.05em;letter-spacing:-0.02em}
 .user-wrap{position:relative}
 .user-btn{display:flex;align-items:center;gap:8px;color:var(--text);font-size:0.84rem;font-weight:500;padding:6px 12px 6px 10px;border-radius:var(--radius);background:transparent;border:1px solid var(--border);cursor:pointer;transition:all var(--transition);white-space:nowrap;box-shadow:none}
@@ -180,7 +180,7 @@ function renderBrand(appName) {
     <span style="width:36px;height:36px;background:linear-gradient(135deg,#A855F7,#EC4899);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05em;color:#fff;text-shadow:0 0 12px rgba(255,255,255,0.7),0 0 4px rgba(255,255,255,0.95);flex-shrink:0;box-shadow:0 2px 8px rgba(168,85,247,0.35),0 0 20px rgba(168,85,247,0.45)">111</span>
     <div style="display:flex;flex-direction:column;line-height:1.25">
       <span style="font-weight:700;font-size:1.1em;color:#fff;letter-spacing:-0.02em">111<span style="color:#A855F7;text-shadow:0 0 20px rgba(168,85,247,0.5)">iridescence</span></span>
-      <span style="font-size:0.72em;color:#94a3b8;font-weight:500;letter-spacing:0.03em">${appName}</span>
+      <span style="font-size:0.72em;color:#94a3b8;font-weight:500;letter-spacing:0.03em">Hub</span>
     </div>
   </a>`;
 }
@@ -240,8 +240,8 @@ function renderNav(active, username) {
     <a href="/habits/history" class="nav-link ${active === 'hist' ? 'active' : ''}">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       History</a>
-    ${renderUserDropdown(username)}
     ${renderAppSwitcher()}
+    ${renderUserDropdown(username)}
   </div>`;
 }
 
